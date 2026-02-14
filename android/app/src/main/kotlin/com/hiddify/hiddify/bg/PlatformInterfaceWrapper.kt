@@ -5,35 +5,28 @@ import android.os.Build
 import android.os.Process
 import androidx.annotation.RequiresApi
 import com.hiddify.hiddify.Application
-import io.nekohasekai.libbox.InterfaceUpdateListener
-import io.nekohasekai.libbox.NetworkInterfaceIterator
-import io.nekohasekai.libbox.PlatformInterface
-import io.nekohasekai.libbox.StringIterator
-import io.nekohasekai.libbox.TunOptions
-import io.nekohasekai.libbox.WIFIState
+import com.hiddify.core.libbox.InterfaceUpdateListener
+import com.hiddify.core.libbox.NetworkInterfaceIterator
+import com.hiddify.core.libbox.PlatformInterface
+import com.hiddify.core.libbox.StringIterator
+import com.hiddify.core.libbox.TunOptions
+import com.hiddify.core.libbox.WIFIState
 import java.net.Inet6Address
 import java.net.InetSocketAddress
 import java.net.InterfaceAddress
 import java.net.NetworkInterface
 import java.util.Enumeration
-import io.nekohasekai.libbox.NetworkInterface as LibboxNetworkInterface
+import com.hiddify.core.libbox.NetworkInterface as LibboxNetworkInterface
 
 interface PlatformInterfaceWrapper : PlatformInterface {
 
-    override fun usePlatformAutoDetectInterfaceControl(): Boolean {
-        return true
-    }
+    override fun usePlatformAutoDetectInterfaceControl(): Boolean = true
 
-    override fun autoDetectInterfaceControl(fd: Int) {
-    }
+    override fun autoDetectInterfaceControl(fd: Int) {}
 
-    override fun openTun(options: TunOptions): Int {
-        error("invalid argument")
-    }
+    override fun openTun(options: TunOptions): Int = error("invalid argument")
 
-    override fun useProcFS(): Boolean {
-        return Build.VERSION.SDK_INT < Build.VERSION_CODES.Q
-    }
+    override fun useProcFS(): Boolean = Build.VERSION.SDK_INT < Build.VERSION_CODES.Q
 
     @RequiresApi(Build.VERSION_CODES.Q)
     override fun findConnectionOwner(
@@ -54,30 +47,18 @@ interface PlatformInterfaceWrapper : PlatformInterface {
 
     override fun packageNameByUid(uid: Int): String {
         val packages = Application.packageManager.getPackagesForUid(uid)
-        if (packages.isNullOrEmpty()) error("android: package not found")
-        return packages[0]
+        return packages?.firstOrNull() ?: ""
     }
 
-    @Suppress("DEPRECATION")
     override fun uidByPackageName(packageName: String): Int {
         return try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                Application.packageManager.getPackageUid(
-                    packageName, PackageManager.PackageInfoFlags.of(0)
-                )
-            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                Application.packageManager.getPackageUid(packageName, 0)
-            } else {
-                Application.packageManager.getApplicationInfo(packageName, 0).uid
-            }
+            Application.packageManager.getPackageUid(packageName, 0)
         } catch (e: PackageManager.NameNotFoundException) {
-            error("android: package not found")
+            -1
         }
     }
 
-    override fun usePlatformDefaultInterfaceMonitor(): Boolean {
-        return true
-    }
+    override fun usePlatformDefaultInterfaceMonitor(): Boolean = true
 
     override fun startDefaultInterfaceMonitor(listener: InterfaceUpdateListener) {
         DefaultNetworkMonitor.setListener(listener)
@@ -87,28 +68,19 @@ interface PlatformInterfaceWrapper : PlatformInterface {
         DefaultNetworkMonitor.setListener(null)
     }
 
-    override fun usePlatformInterfaceGetter(): Boolean {
-        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
-    }
+    override fun usePlatformInterfaceGetter(): Boolean = true
 
     override fun getInterfaces(): NetworkInterfaceIterator {
         return InterfaceArray(NetworkInterface.getNetworkInterfaces())
     }
 
-    override fun underNetworkExtension(): Boolean {
-        return false
-    }
-    
-    override fun includeAllNetworks(): Boolean {
-        return false
-    }
+    override fun underNetworkExtension(): Boolean = false
 
-    override fun clearDNSCache() {
-    }
+    override fun includeAllNetworks(): Boolean = false
 
-    override fun readWIFIState(): WIFIState? {
-        return null
-    }
+    override fun clearDNSCache() {}
+
+    override fun readWIFIState(): WIFIState? = null
 
     private class InterfaceArray(private val iterator: Enumeration<NetworkInterface>) :
         NetworkInterfaceIterator {
@@ -117,7 +89,7 @@ interface PlatformInterfaceWrapper : PlatformInterface {
             return iterator.hasMoreElements()
         }
 
-        override fun next(): LibboxNetworkInterface {
+        override fun next(): LibboxNetworkInterface? {
             val element = iterator.nextElement()
             return LibboxNetworkInterface().apply {
                 name = element.name
@@ -125,11 +97,7 @@ interface PlatformInterfaceWrapper : PlatformInterface {
                 runCatching {
                     mtu = element.mtu
                 }
-                addresses =
-                    StringArray(
-                        element.interfaceAddresses.mapTo(mutableListOf()) { it.toPrefix() }
-                            .iterator()
-                    )
+                addresses = StringArray(element.interfaceAddresses.map { it.toPrefix() })
             }
         }
 
@@ -142,15 +110,10 @@ interface PlatformInterfaceWrapper : PlatformInterface {
         }
     }
 
-    private class StringArray(private val iterator: Iterator<String>) : StringIterator {
-
-        override fun hasNext(): Boolean {
-            return iterator.hasNext()
-        }
-
-        override fun next(): String {
-            return iterator.next()
-        }
+    private class StringArray(private val list: List<String>) : StringIterator {
+        private val iterator = list.iterator()
+        override fun hasNext(): Boolean = iterator.hasNext()
+        override fun next(): String = iterator.next()
     }
 
 }

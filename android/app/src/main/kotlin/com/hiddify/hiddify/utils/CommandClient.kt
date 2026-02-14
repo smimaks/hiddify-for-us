@@ -1,14 +1,14 @@
 package com.hiddify.hiddify.utils
 
 import go.Seq
-import io.nekohasekai.libbox.CommandClient
-import io.nekohasekai.libbox.CommandClientHandler
-import io.nekohasekai.libbox.CommandClientOptions
-import io.nekohasekai.libbox.Libbox
-import io.nekohasekai.libbox.OutboundGroup
-import io.nekohasekai.libbox.OutboundGroupIterator
-import io.nekohasekai.libbox.StatusMessage
-import io.nekohasekai.libbox.StringIterator
+import com.hiddify.core.libbox.CommandClient
+import com.hiddify.core.libbox.CommandClientHandler
+import com.hiddify.core.libbox.CommandClientOptions
+import com.hiddify.core.libbox.Libbox
+import com.hiddify.core.libbox.OutboundGroup
+import com.hiddify.core.libbox.OutboundGroupIterator
+import com.hiddify.core.libbox.StatusMessage
+import com.hiddify.core.libbox.StringIterator
 import com.hiddify.hiddify.ktx.toList
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -40,20 +40,20 @@ open class CommandClient(
     }
 
 
-    private var commandClient: CommandClient? = null
+    private var commandClient: com.hiddify.core.libbox.CommandClient? = null
     private val clientHandler = ClientHandler()
     fun connect() {
         disconnect()
         val options = CommandClientOptions()
-        options.command = when (connectionType) {
-            ConnectionType.Status -> Libbox.CommandStatus
-            ConnectionType.Groups -> Libbox.CommandGroup
-            ConnectionType.Log -> Libbox.CommandLog
-            ConnectionType.ClashMode -> Libbox.CommandClashMode
-            ConnectionType.GroupOnly -> Libbox.CommandGroupInfoOnly
+        when (connectionType) {
+            ConnectionType.Status -> options.command = Libbox.CommandStatus
+            ConnectionType.Groups -> options.command = Libbox.CommandGroup
+            ConnectionType.Log -> options.command = Libbox.CommandLog
+            ConnectionType.ClashMode -> options.command = Libbox.CommandClashMode
+            ConnectionType.GroupOnly -> options.command = Libbox.CommandGroup
         }
-        options.statusInterval = 2 * 1000 * 1000 * 1000
-        val commandClient = CommandClient(clientHandler, options)
+        options.statusInterval = 2 * 1000 * 1000 * 1000L
+        val commandClient = Libbox.newCommandClient(clientHandler, options)
         scope.launch(Dispatchers.IO) {
             for (i in 1..10) {
                 delay(100 + i.toLong() * 50)
@@ -79,9 +79,7 @@ open class CommandClient(
 
     fun disconnect() {
         commandClient?.apply {
-            runCatching {
-                disconnect()
-            }
+            runCatching { disconnect() }
             Seq.destroyRef(refnum)
         }
         commandClient = null
@@ -103,7 +101,7 @@ open class CommandClient(
             }
             val groups = mutableListOf<OutboundGroup>()
             while (message.hasNext()) {
-                groups.add(message.next())
+                message.next()?.let { groups.add(it) }
             }
             handler.updateGroups(groups)
         }
@@ -113,10 +111,7 @@ open class CommandClient(
         }
 
         override fun writeLog(message: String?) {
-            if (message == null) {
-                return
-            }
-            handler.appendLog(message)
+            if (message != null) handler.appendLog(message)
         }
 
         override fun writeStatus(message: StatusMessage?) {
@@ -126,12 +121,12 @@ open class CommandClient(
             handler.updateStatus(message)
         }
 
-        override fun initializeClashMode(modeList: StringIterator, currentMode: String) {
-            handler.initializeClashMode(modeList.toList(), currentMode)
+        override fun initializeClashMode(modeList: StringIterator?, currentMode: String?) {
+            handler.initializeClashMode(modeList?.toList() ?: emptyList(), currentMode ?: "")
         }
 
-        override fun updateClashMode(newMode: String) {
-            handler.updateClashMode(newMode)
+        override fun updateClashMode(newMode: String?) {
+            handler.updateClashMode(newMode ?: "")
         }
 
     }

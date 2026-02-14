@@ -37,7 +37,7 @@ class LocalePrefTile extends ConsumerWidget {
                       title: Text(e.localeName),
                       value: e,
                       groupValue: locale,
-                      onChanged: Navigator.of(context).maybePop,
+                      onChanged: (e) => Navigator.of(context).pop(e),
                     ),
                   )
                   .toList(),

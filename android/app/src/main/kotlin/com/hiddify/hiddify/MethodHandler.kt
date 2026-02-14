@@ -6,8 +6,8 @@ import com.hiddify.hiddify.constant.Status
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
-import io.nekohasekai.libbox.Libbox
-import io.nekohasekai.mobile.Mobile
+import com.hiddify.core.libbox.Libbox
+import com.hiddify.core.mobile.Mobile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
@@ -55,20 +55,16 @@ class MethodHandler(private val scope: CoroutineScope) : FlutterPlugin,
             Trigger.Setup.method -> {
                 GlobalScope.launch {
                     result.runCatching {
-                           val baseDir = Application.application.filesDir                
-                            baseDir.mkdirs()
-                            val workingDir = Application.application.getExternalFilesDir(null)
-                            workingDir?.mkdirs()
-                            val tempDir = Application.application.cacheDir
-                            tempDir.mkdirs()
-                            Log.d(TAG, "base dir: ${baseDir.path}")
-                            Log.d(TAG, "working dir: ${workingDir?.path}")
-                            Log.d(TAG, "temp dir: ${tempDir.path}")
-                            
-                            Mobile.setup(baseDir.path, workingDir?.path, tempDir.path, false)
-                            Libbox.redirectStderr(File(workingDir, "stderr2.log").path)
-
-                            success("")
+                        val baseDir = Application.application.filesDir
+                        baseDir.mkdirs()
+                        val workingDir = Application.application.getExternalFilesDir(null)
+                        workingDir?.mkdirs()
+                        val tempDir = Application.application.cacheDir
+                        tempDir.mkdirs()
+                        Log.d(TAG, "base dir: ${baseDir.path}")
+                        Log.d(TAG, "working dir: ${workingDir?.path}")
+                        Log.d(TAG, "temp dir: ${tempDir.path}")
+                        success("")
                     }
                 }
             }
@@ -91,6 +87,11 @@ class MethodHandler(private val scope: CoroutineScope) : FlutterPlugin,
                     result.runCatching {
                         val args = call.arguments as String
                         Settings.configOptions = args
+                        try {
+                            Mobile.setHiddifyOptions(args)
+                        } catch (e: Exception) {
+                            Log.w(TAG, "setHiddifyOptions", e)
+                        }
                         success(true)
                     }
                 }
@@ -210,13 +211,7 @@ class MethodHandler(private val scope: CoroutineScope) : FlutterPlugin,
             Trigger.GenerateWarpConfig.method -> {
                 scope.launch(Dispatchers.IO) {
                     result.runCatching {
-                        val args = call.arguments as Map<*, *>
-                        val warpConfig = Mobile.generateWarpConfig(
-                            args["license-key"] as String,
-                            args["previous-account-id"] as String,
-                            args["previous-access-token"] as String,
-                        )
-                        success(warpConfig)
+                        error("generateWarpConfig not supported in this core version")
                     }
                 }
             }

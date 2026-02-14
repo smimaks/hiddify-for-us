@@ -10,6 +10,12 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 part 'connection_data_providers.g.dart';
 
 @Riverpod(keepAlive: true)
+ConnectionPlatformSource connectionPlatformSource(
+  ConnectionPlatformSourceRef ref,
+) =>
+    ConnectionPlatformSourceImpl();
+
+@Riverpod(keepAlive: true)
 ConnectionRepository connectionRepository(
   ConnectionRepositoryRef ref,
 ) {
@@ -17,7 +23,7 @@ ConnectionRepository connectionRepository(
     directories: ref.watch(appDirectoriesProvider).requireValue,
     configOptionRepository: ref.watch(configOptionRepositoryProvider),
     singbox: ref.watch(singboxServiceProvider),
-    platformSource: ConnectionPlatformSourceImpl(),
+    platformSource: ref.watch(connectionPlatformSourceProvider),
     profilePathResolver: ref.watch(profilePathResolverProvider),
   );
 }

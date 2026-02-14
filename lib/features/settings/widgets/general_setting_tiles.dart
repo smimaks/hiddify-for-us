@@ -19,9 +19,7 @@ class GeneralSettingTiles extends HookConsumerWidget {
 
     return Column(
       children: [
-        const LocalePrefTile(),
         const ThemeModePrefTile(),
-        const EnableAnalyticsPrefTile(),
         SwitchListTile(
           title: Text(t.settings.general.autoIpCheck),
           secondary: const Icon(FluentIcons.globe_search_24_regular),

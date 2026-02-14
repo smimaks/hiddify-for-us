@@ -3,7 +3,7 @@ package com.hiddify.hiddify.bg
 import android.net.Network
 import android.os.Build
 import com.hiddify.hiddify.Application
-import io.nekohasekai.libbox.InterfaceUpdateListener
+import com.hiddify.core.libbox.InterfaceUpdateListener
 
 import java.net.NetworkInterface
 

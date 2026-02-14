@@ -1,7 +1,6 @@
 import 'package:dartx/dartx.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/material.dart';
-import 'package:hiddify/core/app_info/app_info_provider.dart';
 import 'package:hiddify/core/localization/translations.dart';
 import 'package:hiddify/core/model/failures.dart';
 import 'package:hiddify/core/router/router.dart';
@@ -33,28 +32,21 @@ class HomePage extends HookConsumerWidget {
           CustomScrollView(
             slivers: [
               NestedAppBar(
-                title: Text.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(text: t.general.appTitle),
-                      const TextSpan(text: " "),
-                      const WidgetSpan(
-                        child: AppVersionLabel(),
-                        alignment: PlaceholderAlignment.middle,
-                      ),
-                    ],
-                  ),
-                ),
+                title: Text(t.general.appTitle),
                 actions: [
-                  IconButton(
-                    onPressed: () => const QuickSettingsRoute().push(context),
-                    icon: const Icon(FluentIcons.options_24_filled),
-                    tooltip: t.config.quickSettings,
-                  ),
-                  IconButton(
-                    onPressed: () => const AddProfileRoute().push(context),
-                    icon: const Icon(FluentIcons.add_circle_24_filled),
-                    tooltip: t.profile.add.buttonText,
+                  PopupMenuButton<int>(
+                    icon: const Icon(FluentIcons.more_vertical_24_filled),
+                    tooltip: t.settings.pageTitle,
+                    onSelected: (v) {
+                      if (v == 0) const QuickSettingsRoute().push(context);
+                      if (v == 1) const AddProfileRoute().push(context);
+                      if (v == 2) const SettingsRoute().push(context);
+                    },
+                    itemBuilder: (context) => [
+                      PopupMenuItem(value: 0, child: Text(t.config.quickSettings)),
+                      PopupMenuItem(value: 1, child: Text(t.profile.add.buttonText)),
+                      PopupMenuItem(value: 2, child: Text(t.settings.pageTitle)),
+                    ],
                   ),
                 ],
               ),
@@ -93,41 +85,6 @@ class HomePage extends HookConsumerWidget {
             ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-class AppVersionLabel extends HookConsumerWidget {
-  const AppVersionLabel({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final t = ref.watch(translationsProvider);
-    final theme = Theme.of(context);
-
-    final version = ref.watch(appInfoProvider).requireValue.presentVersion;
-    if (version.isBlank) return const SizedBox();
-
-    return Semantics(
-      label: t.about.version,
-      button: false,
-      child: Container(
-        decoration: BoxDecoration(
-          color: theme.colorScheme.secondaryContainer,
-          borderRadius: BorderRadius.circular(4),
-        ),
-        padding: const EdgeInsets.symmetric(
-          horizontal: 4,
-          vertical: 1,
-        ),
-        child: Text(
-          version,
-          textDirection: TextDirection.ltr,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSecondaryContainer,
-          ),
-        ),
       ),
     );
   }

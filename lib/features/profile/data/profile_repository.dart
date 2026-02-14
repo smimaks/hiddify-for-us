@@ -18,6 +18,7 @@ import 'package:hiddify/features/profile/model/profile_sort_enum.dart';
 import 'package:hiddify/singbox/service/singbox_service.dart';
 import 'package:hiddify/utils/custom_loggers.dart';
 import 'package:hiddify/utils/link_parsers.dart';
+import 'package:hiddify/utils/proxy_link_to_singbox.dart';
 import 'package:meta/meta.dart';
 import 'package:uuid/uuid.dart';
 
@@ -195,9 +196,13 @@ class ProfileRepositoryImpl with ExceptionHandler, InfraLogger implements Profil
       () async {
         final file = profilePathResolver.file(profileId);
         final tempFile = profilePathResolver.tempFile(profileId);
-
+        await profilePathResolver.directory.create(recursive: true);
+        final fromLinks = proxyLinksToSingboxJson(content);
+        final contentToWrite = normalizeSingboxConfig(fromLinks ?? content);
+        loggy.debug('[updateContent] profileId=$profileId fromLinks=${fromLinks != null} contentLength=${content.length} writeLength=${contentToWrite.length}');
+        await file.writeAsString(contentToWrite);
+        await tempFile.writeAsString(contentToWrite);
         try {
-          await tempFile.writeAsString(content);
           return await validateConfig(file.path, tempFile.path, false).run();
         } finally {
           if (tempFile.existsSync()) tempFile.deleteSync();
@@ -278,11 +283,11 @@ class ProfileRepositoryImpl with ExceptionHandler, InfraLogger implements Profil
     return TaskEither<ProfileFailure, String>.Do(
       ($) async {
         final configFile = profilePathResolver.file(id);
-
+        if (!await configFile.exists()) {
+          return await $(TaskEither.left(ProfileFailure.invalidConfig(configFile.path)));
+        }
         final options = await configOptionRepository.getConfigOptions();
-
         singbox.changeOptions(options).mapLeft(InvalidConfigOption.new).run();
-
         return await $(
           singbox.generateFullConfigByPath(configFile.path).mapLeft(ProfileFailure.unexpected),
         );
@@ -396,6 +401,7 @@ class ProfileRepositoryImpl with ExceptionHandler, InfraLogger implements Profil
         final tempFile = profilePathResolver.tempFile(fileName);
 
         try {
+          await profilePathResolver.directory.create(recursive: true);
           final configs = await configOptionRepository.getConfigOptions();
 
           final response = await httpClient.download(
@@ -403,8 +409,15 @@ class ProfileRepositoryImpl with ExceptionHandler, InfraLogger implements Profil
             tempFile.path,
             cancelToken: cancelToken,
             userAgent: configs.useXrayCoreWhenPossible ? "v2rayNG/1.8.23" : null,
+            headers: {"X-Sub-id": fileName},
           );
-          final headers = await _populateHeaders(response.headers.map, tempFile.path);
+          final rawBody = await tempFile.readAsString();
+          final content = safeDecodeBase64(rawBody);
+          final fromLinks = proxyLinksToSingboxJson(content);
+          final contentToWrite = normalizeSingboxConfig(fromLinks ?? content);
+          loggy.debug('[fetch] url=$url fromLinks=${fromLinks != null} contentLength=${content.length} writeLength=${contentToWrite.length}');
+          await file.writeAsString(contentToWrite);
+          final headers = await _populateHeaders(response.headers.map, file.path);
           return await validateConfig(file.path, tempFile.path, false)
               .andThen(
                 () => TaskEither(() async {

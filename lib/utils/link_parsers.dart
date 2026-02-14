@@ -24,8 +24,8 @@ abstract class LinkParser {
     return '$modifiedUri';
   }
 
-  // protocols schemas
   static const protocols = {'clash', 'clashmeta', 'sing-box', 'hiddify'};
+  static const _proxySchemes = {'vless', 'vmess', 'trojan', 'ss', 'ssconf', 'tuic', 'hy2', 'hysteria2', 'hy', 'hysteria', 'ssh', 'wg', 'warp'};
 
   static ProfileLink? parse(String link) {
     return simple(link) ?? deep(link);
@@ -34,6 +34,7 @@ abstract class LinkParser {
   static ProfileLink? simple(String link) {
     if (!isUrl(link)) return null;
     final uri = Uri.parse(link.trim());
+    if (uri.scheme.isNotNullOrBlank && _proxySchemes.contains(uri.scheme.toLowerCase())) return null;
     return (
       url: uri.toString(),
       name: uri.queryParameters['name'] ?? '',

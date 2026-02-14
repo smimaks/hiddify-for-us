@@ -133,6 +133,7 @@ class ProxyRepositoryImpl with ExceptionHandler, InfraLogger implements ProxyRep
   TaskEither<ProxyFailure, IpInfo> getCurrentIpInfo(CancelToken cancelToken) {
     return TaskEither.tryCatch(
       () async {
+        await client.waitForProxyPort();
         Object? error;
         for (final source in _ipInfoSources.entries) {
           try {

@@ -97,7 +97,7 @@ class SystemTrayNotifier extends _$SystemTrayNotifier with AppLogger {
         MenuItem.separator(),
         MenuItem(
           label: t.config.serviceMode,
-          icon: Assets.images.trayIconIco,
+          icon: Platform.isWindows ? Assets.images.uSSRIco : Assets.images.uSSRPng.path,
           disabled: true,
         ),
 
@@ -155,38 +155,8 @@ class SystemTrayNotifier extends _$SystemTrayNotifier with AppLogger {
 
   static String _trayIconPath(ConnectionStatus status) {
     if (Platform.isWindows) {
-      final Brightness brightness = WidgetsBinding.instance.platformDispatcher.platformBrightness;
-      final isDarkMode = brightness == Brightness.dark;
-      switch (status) {
-        case Connected():
-          return Assets.images.trayIconConnectedIco;
-        case Connecting():
-          return Assets.images.trayIconDisconnectedIco;
-        case Disconnecting():
-          return Assets.images.trayIconDisconnectedIco;
-        case Disconnected():
-          if (isDarkMode) {
-            return Assets.images.trayIconIco;
-          } else {
-            return Assets.images.trayIconDarkIco;
-          }
-      }
+      return Assets.images.uSSRIco;
     }
-    final isDarkMode = false;
-    switch (status) {
-      case Connected():
-        return Assets.images.trayIconConnectedPng.path;
-      case Connecting():
-        return Assets.images.trayIconDisconnectedPng.path;
-      case Disconnecting():
-        return Assets.images.trayIconDisconnectedPng.path;
-      case Disconnected():
-        if (isDarkMode) {
-          return Assets.images.trayIconDarkPng.path;
-        } else {
-          return Assets.images.trayIconPng.path;
-        }
-    }
-    // return Assets.images.trayIconPng.path;
+    return Assets.images.uSSRPng.path;
   }
 }

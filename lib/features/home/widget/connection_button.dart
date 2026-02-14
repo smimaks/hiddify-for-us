@@ -53,6 +53,11 @@ class ConnectionButton extends HookConsumerWidget {
       return true;
     }
 
+    final isConnected = switch (connectionStatus) {
+      AsyncData(value: Connected()) => true,
+      _ => false,
+    };
+
     return _ConnectionButton(
       onTap: switch (connectionStatus) {
         AsyncData(value: Disconnected()) || AsyncError() => () async {
@@ -95,6 +100,7 @@ class ConnectionButton extends HookConsumerWidget {
         _ => Assets.images.disconnectNorouz,
       },
       useImage: today.day >= 19 && today.day <= 23 && today.month == 3,
+      isConnected: isConnected,
     );
   }
 }
@@ -107,6 +113,7 @@ class _ConnectionButton extends StatelessWidget {
     required this.buttonColor,
     required this.image,
     required this.useImage,
+    required this.isConnected,
   });
 
   final VoidCallback onTap;
@@ -115,6 +122,7 @@ class _ConnectionButton extends StatelessWidget {
   final Color buttonColor;
   final AssetGenImage image;
   final bool useImage;
+  final bool isConnected;
 
   @override
   Widget build(BuildContext context) {
@@ -145,23 +153,22 @@ class _ConnectionButton extends StatelessWidget {
               child: InkWell(
                 onTap: onTap,
                 child: Padding(
-                  padding: const EdgeInsets.all(36),
-                  child: TweenAnimationBuilder(
-                    tween: ColorTween(end: buttonColor),
-                    duration: const Duration(milliseconds: 250),
-                    builder: (context, value, child) {
-                      if (useImage) {
-                        return image.image(filterQuality: FilterQuality.medium);
-                      } else {
-                        return Assets.images.logo.svg(
-                          colorFilter: ColorFilter.mode(
-                            value!,
-                            BlendMode.srcIn,
+                  padding: const EdgeInsets.all(8),
+                  child: useImage
+                      ? image.image(filterQuality: FilterQuality.medium)
+                      : TweenAnimationBuilder<double>(
+                          tween: Tween(
+                            begin: isConnected ? 0.45 : 1.0,
+                            end: isConnected ? 1.0 : 0.45,
                           ),
-                        );
-                      }
-                    },
-                  ),
+                          duration: const Duration(milliseconds: 250),
+                          builder: (context, opacity, _) {
+                            return Opacity(
+                              opacity: opacity,
+                              child: Assets.images.logo.svg(),
+                            );
+                          },
+                        ),
                 ),
               ),
             ).animate(target: enabled ? 0 : 1).blurXY(end: 1),

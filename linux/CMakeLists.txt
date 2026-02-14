@@ -53,6 +53,7 @@ add_subdirectory(${FLUTTER_MANAGED_DIR})
 # System-level dependencies.
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GTK REQUIRED IMPORTED_TARGET gtk+-3.0)
+pkg_check_modules(GIO REQUIRED IMPORTED_TARGET gio-2.0)
 
 add_definitions(-DAPPLICATION_ID="${APPLICATION_ID}")
 
@@ -72,7 +73,7 @@ apply_standard_settings(${BINARY_NAME})
 
 # Add dependency libraries. Add any application-specific dependencies here.
 target_link_libraries(${BINARY_NAME} PRIVATE flutter)
-target_link_libraries(${BINARY_NAME} PRIVATE PkgConfig::GTK)
+target_link_libraries(${BINARY_NAME} PRIVATE PkgConfig::GTK PkgConfig::GIO)
 
 # Run the Flutter tool portions of the build. This must not be removed.
 add_dependencies(${BINARY_NAME} flutter_assemble)
@@ -86,6 +87,13 @@ set_target_properties(${BINARY_NAME}
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/intermediates_do_not_run"
 )
 
+set(LINUX_ICON_SRC "${CMAKE_CURRENT_SOURCE_DIR}/../assets/images/USSR.png")
+set(LINUX_ICON_DST "${CMAKE_BINARY_DIR}/intermediates_do_not_run/hiddify.png")
+if(EXISTS "${LINUX_ICON_SRC}")
+  add_custom_command(TARGET ${BINARY_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy "${LINUX_ICON_SRC}" "${LINUX_ICON_DST}"
+  )
+endif()
 
 # Generated plugin build rules, which manage building the plugins and adding
 # them to the application.
@@ -108,18 +116,26 @@ install(CODE "
 set(INSTALL_BUNDLE_DATA_DIR "${CMAKE_INSTALL_PREFIX}/data")
 set(INSTALL_BUNDLE_LIB_DIR "${CMAKE_INSTALL_PREFIX}/lib")
 
-install(FILES "../libcore/bin/lib/libcore.so" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
-  COMPONENT Runtime)
-
-install(
-  FILES "../libcore/bin/HiddifyCli" 
-  DESTINATION "${CMAKE_INSTALL_PREFIX}"
-  PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ
-  COMPONENT Runtime
-)
+set(LIBCORE_SO "${CMAKE_CURRENT_SOURCE_DIR}/../libcore/bin/lib/libcore.so")
+set(HIDDIFY_CLI "${CMAKE_CURRENT_SOURCE_DIR}/../libcore/bin/HiddifyCli")
+if(EXISTS "${LIBCORE_SO}" AND EXISTS "${HIDDIFY_CLI}")
+  install(FILES "${LIBCORE_SO}" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
+    COMPONENT Runtime RENAME "libcore.so")
+  install(FILES "${HIDDIFY_CLI}" DESTINATION "${CMAKE_INSTALL_PREFIX}"
+    PERMISSIONS OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ
+    COMPONENT Runtime)
+else()
+  message(WARNING "libcore not found. Run 'make linux-libs' or 'make build-linux-libs'. App will not work without it.")
+endif()
 
 install(TARGETS ${BINARY_NAME} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}"
   COMPONENT Runtime)
+
+set(LINUX_ICON "${CMAKE_CURRENT_SOURCE_DIR}/../assets/images/USSR.png")
+if(EXISTS "${LINUX_ICON}")
+  install(FILES "${LINUX_ICON}" DESTINATION "${CMAKE_INSTALL_PREFIX}"
+    COMPONENT Runtime RENAME "hiddify.png")
+endif()
 
 install(FILES "${FLUTTER_ICU_DATA_FILE}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}"
   COMPONENT Runtime)

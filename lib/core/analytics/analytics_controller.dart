@@ -20,7 +20,9 @@ bool _testCrashReport = false;
 class AnalyticsController extends _$AnalyticsController with AppLogger {
   @override
   Future<bool> build() async {
-    return _preferences.getBool(enableAnalyticsPrefKey) ?? true;
+    final dsn = Environment.sentryDSN;
+    loggy.info("Sentry DSN: ${dsn.isEmpty ? '(not set, no data sent)' : dsn}");
+    return _preferences.getBool(enableAnalyticsPrefKey) ?? false;
   }
 
   SharedPreferences get _preferences => ref.read(sharedPreferencesProvider).requireValue;
@@ -36,6 +38,11 @@ class AnalyticsController extends _$AnalyticsController with AppLogger {
       final env = ref.read(environmentProvider);
       final appInfo = await ref.read(appInfoProvider.future);
       final dsn = !kDebugMode || _testCrashReport ? Environment.sentryDSN : "";
+      if (dsn.isEmpty) {
+        loggy.info("Sentry: DSN not set, crash reports are not sent anywhere");
+      } else {
+        loggy.info("Sentry: crash reports would be sent to: $dsn");
+      }
       final sentryLogger = SentryLoggyIntegration();
       LoggerController.instance.addPrinter("analytics", sentryLogger);
 

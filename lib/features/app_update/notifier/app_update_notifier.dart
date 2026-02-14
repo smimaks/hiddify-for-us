@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:hiddify/core/app_info/app_info_provider.dart';
+import 'package:hiddify/core/localization/locale_extensions.dart';
 import 'package:hiddify/core/localization/locale_preferences.dart';
 import 'package:hiddify/core/model/constants.dart';
 import 'package:hiddify/core/preferences/preferences_provider.dart';
@@ -15,7 +16,7 @@ import 'package:version/version.dart';
 
 part 'app_update_notifier.g.dart';
 
-const _debugUpgrader = true;
+const _debugUpgrader = false;
 
 @riverpod
 Upgrader upgrader(UpgraderRef ref) => Upgrader(

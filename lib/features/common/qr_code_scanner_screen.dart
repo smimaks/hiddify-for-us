@@ -186,7 +186,7 @@ class _QRCodeScannerScreenState extends ConsumerState<QRCodeScannerScreen> with 
 
   @override
   Widget build(BuildContext context) {
-    final Translations t = ref.watch(translationsProvider);
+    final t = ref.watch(translationsProvider);
 
     return FutureBuilder(
       future: FlutterEasyPermission.has(
@@ -207,7 +207,7 @@ class _QRCodeScannerScreenState extends ConsumerState<QRCodeScannerScreen> with 
     );
   }
 
-  Widget _buildScannerUI(BuildContext context, Translations t) {
+  Widget _buildScannerUI(BuildContext context, TranslationsEn t) {
     final size = MediaQuery.sizeOf(context);
     final overlaySize = (size.shortestSide - 12).coerceAtMost(248);
     // _startScanner();
@@ -309,7 +309,7 @@ class _QRCodeScannerScreenState extends ConsumerState<QRCodeScannerScreen> with 
     );
   }
 
-  Widget _buildPermissionDeniedUI(BuildContext context, Translations t) {
+  Widget _buildPermissionDeniedUI(BuildContext context, TranslationsEn t) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,

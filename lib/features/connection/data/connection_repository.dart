@@ -199,9 +199,13 @@ class ConnectionRepositoryImpl with ExceptionHandler, InfraLogger implements Con
             return right(unit);
           }),
         );
-        return await $(
+        await $(
           singbox.stop().mapLeft(UnexpectedConnectionFailure.new),
         );
+        if (options.setSystemProxy) {
+          await platformSource.clearSystemProxy();
+        }
+        return await $(TaskEither.of(unit));
       },
     ).handleExceptions(UnexpectedConnectionFailure.new);
   }

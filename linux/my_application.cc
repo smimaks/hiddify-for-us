@@ -1,5 +1,7 @@
 #include "my_application.h"
 
+#include <glib/gstdio.h>
+#include <gio/gio.h>
 #include <flutter_linux/flutter_linux.h>
 #ifdef GDK_WINDOWING_X11
 #include <gdk/gdkx.h>
@@ -14,7 +16,16 @@ struct _MyApplication
 };
 
 G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
-#define ICON_PATH "./hiddify.png"
+
+static gchar* get_icon_path(void) {
+  gchar *exe = g_file_read_link("/proc/self/exe", NULL);
+  if (!exe) return g_build_filename(".", "hiddify.png", NULL);
+  gchar *dir = g_path_get_dirname(exe);
+  gchar *icon = g_build_filename(dir, "hiddify.png", NULL);
+  g_free(dir);
+  g_free(exe);
+  return icon;
+}
 
 // Implements GApplication::activate.
 static void my_application_activate(GApplication *application)
@@ -22,7 +33,8 @@ static void my_application_activate(GApplication *application)
   MyApplication *self = MY_APPLICATION(application);
   GtkWindow *window =
       GTK_WINDOW(gtk_application_window_new(GTK_APPLICATION(application)));
-  gtk_window_set_icon_from_file(window, ICON_PATH, NULL);
+  g_autofree gchar *icon_path = get_icon_path();
+  gtk_window_set_icon_from_file(window, icon_path, NULL);
 
   // Use a header bar when running in GNOME as this is the common style used
   // by applications and is the setup most users will be using (e.g. Ubuntu
@@ -47,14 +59,14 @@ static void my_application_activate(GApplication *application)
   {
     GtkHeaderBar *header_bar = GTK_HEADER_BAR(gtk_header_bar_new());
     gtk_widget_show(GTK_WIDGET(header_bar));
-    gtk_header_bar_set_title(header_bar, "Hiddify");
+    gtk_header_bar_set_title(header_bar, "Для Своих");
     gtk_header_bar_set_show_close_button(header_bar, TRUE);
     gtk_window_set_titlebar(window, GTK_WIDGET(header_bar));
     
   }
   else
   {
-    gtk_window_set_title(window, "Hiddify");
+    gtk_window_set_title(window, "Для Своих");
   }
 
   gtk_window_set_default_size(window, 1280, 720);
@@ -99,10 +111,9 @@ static gboolean my_application_local_command_line(GApplication *application, gch
 // Implements GApplication::startup.
 static void my_application_startup(GApplication *application)
 {
-  // MyApplication* self = MY_APPLICATION(object);
-
-  // Perform any actions required at application startup.
-
+  g_autofree gchar *icon_path = get_icon_path();
+  if (icon_path && g_file_test(icon_path, G_FILE_TEST_EXISTS))
+    gtk_window_set_default_icon_from_file(icon_path, NULL);
   G_APPLICATION_CLASS(my_application_parent_class)->startup(application);
 }
 
@@ -139,6 +150,6 @@ MyApplication *my_application_new()
 {
   return MY_APPLICATION(g_object_new(my_application_get_type(),
                                      "application-id", APPLICATION_ID,
-                                     "flags", G_APPLICATION_DEFAULT_FLAGS,
+                                     "flags", static_cast<GApplicationFlags>(0),
                                      nullptr));
 }

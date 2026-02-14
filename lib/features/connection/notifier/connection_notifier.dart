@@ -1,15 +1,21 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:hiddify/core/haptic/haptic_service.dart';
+import 'package:hiddify/core/localization/translations.dart';
+import 'package:hiddify/core/notification/in_app_notification_controller.dart';
 import 'package:hiddify/core/preferences/general_preferences.dart';
+import 'package:hiddify/features/config_option/data/config_option_repository.dart';
 import 'package:hiddify/features/connection/data/connection_data_providers.dart';
 import 'package:hiddify/features/connection/data/connection_repository.dart';
 import 'package:hiddify/features/connection/model/connection_status.dart';
 import 'package:hiddify/features/profile/model/profile_entity.dart';
 import 'package:hiddify/features/profile/notifier/active_profile_notifier.dart';
+import 'package:hiddify/features/proxy/data/proxy_data_providers.dart';
 import 'package:hiddify/utils/utils.dart';
 import 'package:in_app_review/in_app_review.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:fpdart/src/unit.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 
@@ -54,8 +60,21 @@ class ConnectionNotifier extends _$ConnectionNotifier with AppLogger {
       },
     );
     yield* _connectionRepo.watchConnectionStatus().doOnData((event) {
-      if (event case Disconnected(connectionFailure: final _?) when PlatformUtils.isDesktop) {
-        ref.read(Preferences.startedByUser.notifier).update(false);
+      if (event case Disconnected(connectionFailure: final _?)) {
+        if (PlatformUtils.isDesktop) {
+          ref.read(Preferences.startedByUser.notifier).update(false);
+        }
+      }
+      if (event case Disconnected()) {
+        if (PlatformUtils.isDesktop) {
+          final hadSystemProxy = ref.read(connectionRepositoryProvider).configOptionsSnapshot?.setSystemProxy ?? false;
+          if (hadSystemProxy) {
+            ref.read(inAppNotificationControllerProvider).showInfoToast(
+              ref.read(translationsProvider).connection.proxyClearedTerminalHint,
+              duration: const Duration(seconds: 6),
+            );
+          }
+        }
       }
       loggy.info("connection status: ${event.format()}");
     });
@@ -162,3 +181,42 @@ Future<bool> serviceRunning(ServiceRunningRef ref) => ref
       connectionNotifierProvider.selectAsync((data) => data.isConnected),
     )
     .onError((error, stackTrace) => false);
+
+@Riverpod(keepAlive: true)
+class PeriodicUrlTest extends _$PeriodicUrlTest with AppLogger {
+  @override
+  bool build() {
+    Timer? timer;
+    ref.listen(connectionNotifierProvider, (prev, next) {
+      next.whenOrNull(
+        data: (status) {
+          if (status.isConnected) {
+            timer?.cancel();
+            final interval = ref.read(ConfigOptions.urlTestInterval);
+            Future.delayed(const Duration(seconds: 2), () {
+              if (!ref.exists(connectionNotifierProvider)) return;
+              ref.read(connectionNotifierProvider).whenOrNull(
+                data: (s) {
+                  if (s.isConnected) {
+                    ref.read(proxyRepositoryProvider).urlTest("auto").getOrElse((_) => unit).run();
+                  }
+                },
+              );
+            });
+            timer = Timer.periodic(interval, (_) {
+              ref.read(proxyRepositoryProvider).urlTest("auto").getOrElse((err) {
+                loggy.debug("periodic urlTest", err);
+                return unit;
+              }).run();
+            });
+          } else {
+            timer?.cancel();
+            timer = null;
+          }
+        },
+      );
+    });
+    ref.onDispose(() => timer?.cancel());
+    return true;
+  }
+}

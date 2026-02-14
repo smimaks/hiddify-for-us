@@ -3,6 +3,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:hiddify/core/localization/translations.dart';
+import 'package:hiddify/features/connection/data/connection_data_providers.dart';
 import 'package:hiddify/features/connection/notifier/connection_notifier.dart';
 import 'package:hiddify/utils/utils.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -38,11 +39,14 @@ class WindowNotifier extends _$WindowNotifier with AppLogger {
     }
   }
 
-  // TODO add option to quit or minimize to tray
   Future<void> close() async {
     await windowManager.hide();
     if (Platform.isMacOS) {
       await windowManager.setSkipTaskbar(true);
+    }
+    final connected = await ref.read(connectionNotifierProvider.selectAsync((data) => data.isConnected)).catchError((_) => false);
+    if (!connected) {
+      await ref.read(connectionPlatformSourceProvider).clearSystemProxy();
     }
   }
 
@@ -52,6 +56,7 @@ class WindowNotifier extends _$WindowNotifier with AppLogger {
         loggy.warning("error aborting connection on quit", e);
       },
     );
+    await ref.read(connectionPlatformSourceProvider).clearSystemProxy();
     await trayManager.destroy();
     await windowManager.destroy();
   }

@@ -15,7 +15,6 @@ endif
 
 BINDIR=libcore$(SEP)bin
 ANDROID_OUT=android$(SEP)app$(SEP)libs
-IOS_OUT=ios$(SEP)Frameworks
 DESKTOP_OUT=libcore$(SEP)bin
 GEO_ASSETS_DIR=assets$(SEP)core
 
@@ -46,31 +45,20 @@ get:
 gen:
 	dart run build_runner build --delete-conflicting-outputs
 
-translate:
-	dart run slang
-
-
-
 prepare:
 	@echo use the following commands to prepare the library for each platform:
 	@echo    make android-prepare
 	@echo    make windows-prepare
-	@echo    make linux-prepare 
-	@echo    make macos-prepare
-	@echo    make ios-prepare
+	@echo    make linux-prepare
 
-windows-prepare: get gen translate windows-libs
-	
-ios-prepare: get-geo-assets get gen translate ios-libs 
-	cd ios; pod repo update; pod install;echo "done ios prepare"
-	
-macos-prepare: get-geo-assets get gen translate macos-libs
-linux-prepare: get-geo-assets get gen translate linux-libs
+windows-prepare: get gen windows-libs
+
+linux-prepare: get-geo-assets get gen linux-libs
 linux-appimage-prepare:linux-prepare
 linux-rpm-prepare:linux-prepare
 linux-deb-prepare:linux-prepare
 
-android-prepare: get-geo-assets get gen translate android-libs	
+android-prepare: get-geo-assets get gen android-libs
 android-apk-prepare:android-prepare
 android-aab-prepare:android-prepare
 
@@ -79,34 +67,6 @@ android-aab-prepare:android-prepare
 protos:
 	make -C libcore -f Makefile protos
 	protoc --dart_out=grpc:lib/singbox/generated --proto_path=libcore/protos libcore/protos/*.proto
-
-macos-install-dependencies:
-	brew install create-dmg tree 
-	npm install -g appdmg
-	dart pub global activate flutter_distributor
-
-ios-install-dependencies: 
-	if [ "$(flutter)" = "true" ]; then \
-		curl -L -o ~/Downloads/flutter_macos_3.19.3-stable.zip https://storage.googleapis.com/flutter_infra_release/releases/stable/macos/flutter_macos_3.22.3-stable.zip; \
-		mkdir -p ~/develop; \
-		cd ~/develop; \
-		unzip ~/Downloads/flutter_macos_3.22.3-stable.zip; \
-		export PATH="$$PATH:$$HOME/develop/flutter/bin"; \
-		echo 'export PATH="$$PATH:$$HOME/develop/flutter/bin"' >> ~/.zshrc; \
-		export PATH="$PATH:$HOME/develop/flutter/bin"; \
-		echo 'export PATH="$PATH:$HOME/develop/flutter/bin"' >> ~/.zshrc; \
-		curl -sSL https://rvm.io/mpapis.asc | gpg --import -; \
-		curl -sSL https://rvm.io/pkuczynski.asc | gpg --import -; \
-		curl -sSL https://get.rvm.io | bash -s stable; \
-		brew install openssl@1.1; \
-		PKG_CONFIG_PATH=$(brew --prefix openssl@1.1)/lib/pkgconfig rvm install 2.7.5; \
-		sudo gem install cocoapods -V; \
-	fi
-	brew install create-dmg tree 
-	npm install -g appdmg
-	
-	dart pub global activate flutter_distributor
-	
 
 android-install-dependencies: 
 	echo "nothing yet"
@@ -139,16 +99,18 @@ linux-install-dependencies:
 windows-install-dependencies:
 	dart pub global activate flutter_distributor
 
-gen_translations: #generating missing translations using google translate
+gen_translations:
 	cd .github && bash sync_translate.sh
-	make translate
 
 android-release: android-apk-release
 
 android-apk-release:
-	echo flutter build apk --target $(TARGET) $(BUILD_ARGS) --target-platform android-arm,android-arm64,android-x64 --split-per-abi --verbose  
-	flutter build apk --target $(TARGET) $(BUILD_ARGS) --target-platform android-arm,android-arm64,android-x64 --verbose  
-	ls -R build/app/outputs
+	flutter build apk --target $(TARGET) $(BUILD_ARGS) --target-platform android-arm,android-arm64,android-x64 --split-per-abi --verbose
+	ls -la build/app/outputs/flutter-apk/
+
+android-apk-universal:
+	flutter build apk --target $(TARGET) $(BUILD_ARGS) --verbose
+	ls -la build/app/outputs/flutter-apk/
 
 android-aab-release:
 	flutter build appbundle --target $(TARGET) $(BUILD_ARGS) --dart-define release=google-play
@@ -159,12 +121,6 @@ windows-release:
 
 linux-release: 
 	flutter_distributor package --flutter-build-args=verbose --platform linux --targets deb,rpm,appimage $(DISTRIBUTOR_ARGS)
-
-macos-release:
-	flutter_distributor package --platform macos --targets dmg,pkg $(DISTRIBUTOR_ARGS)
-
-ios-release: #not tested
-	flutter_distributor package --platform ios --targets ipa --build-export-options-plist  ios/exportOptions.plist $(DISTRIBUTOR_ARGS)
 
 android-libs:
 	@$(MKDIR) $(ANDROID_OUT) || echo Folder already exists. Skipping...
@@ -182,16 +138,6 @@ windows-libs:
 linux-libs:
 	mkdir -p $(DESKTOP_OUT)
 	curl -L $(CORE_URL)/$(CORE_NAME)-linux-amd64.tar.gz | tar xz -C $(DESKTOP_OUT)/
-
-
-macos-libs:
-	mkdir -p  $(DESKTOP_OUT) 
-	curl -L $(CORE_URL)/$(CORE_NAME)-macos-universal.tar.gz | tar xz -C $(DESKTOP_OUT)
-
-ios-libs: #not tested
-	mkdir -p $(IOS_OUT)
-	rm -rf $(IOS_OUT)/Libcore.xcframework
-	curl -L $(CORE_URL)/$(CORE_NAME)-ios.tar.gz | tar xz -C "$(IOS_OUT)"
 
 get-geo-assets:
 	echo ""
@@ -211,23 +157,5 @@ build-windows-libs:
 build-linux-libs:
 	make -C libcore -f Makefile linux-amd64 
 
-build-macos-libs:
-	make -C libcore -f Makefile macos-universal
-
-build-ios-libs: 
-	rf -rf $(IOS_OUT)/Libcore.xcframework 
-	make -C libcore -f Makefile ios  
-	mv $(BINDIR)/Libcore.xcframework $(IOS_OUT)/Libcore.xcframework
-
 release: # Create a new tag for release.
 	@CORE_VERSION=$(core.version) bash -c ".github/change_version.sh "
-
-
-
-ios-temp-prepare: 
-	make ios-prepare
-	flutter build ios-framework
-	cd ios
-	pod install
-	
-

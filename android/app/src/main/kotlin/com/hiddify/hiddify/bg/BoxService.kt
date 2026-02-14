@@ -20,13 +20,13 @@ import com.hiddify.hiddify.constant.Action
 import com.hiddify.hiddify.constant.Alert
 import com.hiddify.hiddify.constant.Status
 import go.Seq
-import io.nekohasekai.libbox.BoxService
-import io.nekohasekai.libbox.CommandServer
-import io.nekohasekai.libbox.CommandServerHandler
-import io.nekohasekai.libbox.Libbox
-import io.nekohasekai.libbox.PlatformInterface
-import io.nekohasekai.libbox.SystemProxyStatus
-import io.nekohasekai.mobile.Mobile
+import com.hiddify.core.libbox.CommandServer
+import com.hiddify.core.libbox.CommandServerHandler
+import com.hiddify.core.libbox.Libbox
+import com.hiddify.core.libbox.PlatformInterface
+import com.hiddify.core.libbox.SystemProxyStatus
+import com.hiddify.core.mobile.Mobile
+import com.hiddify.core.mobile.SetupOptions as MobileSetupOptions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.delay
@@ -45,10 +45,9 @@ class BoxService(
 
         private var initializeOnce = false
         private lateinit var workingDir: File
-        private fun initialize() {
+        fun initialize(platformInterface: PlatformInterface) {
             if (initializeOnce) return
             val baseDir = Application.application.filesDir
-            
             baseDir.mkdirs()
             workingDir = Application.application.getExternalFilesDir(null) ?: return
             workingDir.mkdirs()
@@ -57,11 +56,19 @@ class BoxService(
             Log.d(TAG, "base dir: ${baseDir.path}")
             Log.d(TAG, "working dir: ${workingDir.path}")
             Log.d(TAG, "temp dir: ${tempDir.path}")
-            
-            Mobile.setup(baseDir.path, workingDir.path, tempDir.path, false)
+            val opt = MobileSetupOptions()
+            opt.setBasePath(baseDir.path)
+            opt.setWorkingDir(workingDir.path)
+            opt.setTempDir(tempDir.path)
+            opt.setDebug(false)
+            try {
+                Mobile.setupPaths(opt.basePath, opt.workingDir, opt.tempDir, opt.debug)
+            } catch (e: Exception) {
+                Log.w(TAG, e)
+                return
+            }
             Libbox.redirectStderr(File(workingDir, "stderr.log").path)
             initializeOnce = true
-            return
         }
 
         fun parseConfig(path: String, tempPath: String, debug: Boolean): String {
@@ -74,8 +81,51 @@ class BoxService(
             }
         }
 
+        private fun normalizeConfigInboundsAddress(content: String): String {
+            if (!content.trimStart().startsWith("{")) return content
+            return try {
+                val json = org.json.JSONObject(content)
+                if (json.has("inbounds")) {
+                    val inbounds = json.getJSONArray("inbounds")
+                    for (i in 0 until inbounds.length()) {
+                        val obj = inbounds.getJSONObject(i)
+                        if (obj.has("address")) {
+                            obj.put("listen", obj.get("address"))
+                            obj.remove("address")
+                        }
+                        obj.remove("route_exclude_address")
+                    }
+                }
+                if (json.has("outbounds")) {
+                    val outbounds = json.getJSONArray("outbounds")
+                    for (i in 0 until outbounds.length()) {
+                        val ob = outbounds.getJSONObject(i)
+                        if (ob.optString("type") != "vless") continue
+                        if (!ob.has("tls")) continue
+                        val tls = ob.getJSONObject("tls")
+                        if (!tls.has("reality")) continue
+                        if (tls.has("utls")) continue
+                        val utls = org.json.JSONObject()
+                        utls.put("enabled", true)
+                        utls.put("fingerprint", "chrome")
+                        tls.put("utls", utls)
+                    }
+                }
+                json.toString()
+            } catch (_: Exception) {
+                content
+            }
+        }
+
         fun buildConfig(path: String, options: String): String {
-            return Mobile.buildConfig(path, options)
+            return try {
+                val raw = File(path).readText()
+                val normalized = normalizeConfigInboundsAddress(raw)
+                Libbox.formatConfig(normalized)
+            } catch (e: Exception) {
+                Log.w(TAG, e)
+                throw e
+            }
         }
 
         fun start() {
@@ -109,7 +159,6 @@ class BoxService(
     private val status = MutableLiveData(Status.Stopped)
     private val binder = ServiceBinder(status)
     private val notification = ServiceNotification(status, service)
-    private var boxService: BoxService? = null
     private var commandServer: CommandServer? = null
     private var receiverRegistered = false
     private val receiver = object : BroadcastReceiver() {
@@ -133,10 +182,9 @@ class BoxService(
     }
 
     private fun startCommandServer() {
-        val commandServer =
-                CommandServer(this, 300)
-        commandServer.start()
-        this.commandServer = commandServer
+        val cmdServer = Libbox.newCommandServer(this, 300)
+        cmdServer.start()
+        this.commandServer = cmdServer
     }
 
     private var activeProfileName = ""
@@ -162,7 +210,7 @@ class BoxService(
             }
 
             val content = try {
-                Mobile.buildConfig(selectedConfigPath, configOptions)
+                buildConfig(selectedConfigPath, configOptions)
             } catch (e: Exception) {
                 Log.w(TAG, e)
                 stopAndAlert(Alert.EmptyConfiguration)
@@ -181,23 +229,18 @@ class BoxService(
             }
 
             DefaultNetworkMonitor.start()
-            Libbox.registerLocalDNSTransport(LocalResolver)
             Libbox.setMemoryLimit(!Settings.disableMemoryLimit)
-
-            val newService = try {
-                Libbox.newService(content, platformInterface)
-            } catch (e: Exception) {
-                stopAndAlert(Alert.CreateService, e.message)
-                return
-            }
 
             if (delayStart) {
                 delay(1000L)
             }
 
-            newService.start()
-            boxService = newService
-            commandServer?.setService(boxService)
+            try {
+                Mobile.startService(content, platformInterface)
+            } catch (e: Exception) {
+                stopAndAlert(Alert.CreateService, e.message)
+                return
+            }
             status.postValue(Status.Started)
 
             withContext(Dispatchers.Main) {
@@ -218,19 +261,24 @@ class BoxService(
             pfd.close()
             fileDescriptor = null
         }
-        commandServer?.setService(null)
-        boxService?.apply {
-            runCatching {
-                close()
-            }.onFailure {
-                writeLog("service: error when closing: $it")
-            }
-            Seq.destroyRef(refnum)
+        try {
+            Mobile.stop()
+        } catch (e: Exception) {
+            writeLog("service: error when closing: $e")
         }
-        boxService = null
         runBlocking {
             startService(true)
         }
+    }
+
+    override fun postServiceClose() {}
+
+    private fun serviceStop() {
+        stopService()
+    }
+
+    private fun writeDebugMessage(msg: String) {
+        writeLog(msg)
     }
 
     override fun getSystemProxyStatus(): SystemProxyStatus {
@@ -247,13 +295,7 @@ class BoxService(
     }
 
     @RequiresApi(Build.VERSION_CODES.M)
-    private fun serviceUpdateIdleMode() {
-        if (Application.powerManager.isDeviceIdleMode) {
-            boxService?.pause()
-        } else {
-            boxService?.wake()
-        }
-    }
+    private fun serviceUpdateIdleMode() {}
 
     private fun stopService() {
         if (status.value != Status.Started) return
@@ -269,23 +311,13 @@ class BoxService(
                 pfd.close()
                 fileDescriptor = null
             }
-            commandServer?.setService(null)
-            boxService?.apply {
-                runCatching {
-                    close()
-                }.onFailure {
-                    writeLog("service: error when closing: $it")
-                }
-                Seq.destroyRef(refnum)
+            try {
+                Mobile.stop()
+            } catch (e: Exception) {
+                writeDebugMessage("service: error when closing: $e")
             }
-            boxService = null
-            Libbox.registerLocalDNSTransport(null)
             DefaultNetworkMonitor.stop()
-
-            commandServer?.apply {
-                close()
-                Seq.destroyRef(refnum)
-            }
+            commandServer?.close()
             commandServer = null
             Settings.startedByUser = false
             withContext(Dispatchers.Main) {
@@ -293,9 +325,6 @@ class BoxService(
                 service.stopSelf()
             }
         }
-    }
-    override fun postServiceClose() {
-        // Not used on Android
     }
 
     private suspend fun stopAndAlert(type: Alert, message: String? = null) {
@@ -330,7 +359,7 @@ class BoxService(
 
         GlobalScope.launch(Dispatchers.IO) {
             Settings.startedByUser = true
-            initialize()
+            initialize(platformInterface)
             try {
                 startCommandServer()
             } catch (e: Exception) {

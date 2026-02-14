@@ -37,7 +37,7 @@ abstract class ConfigOptions {
   );
   static final blockAds = PreferencesNotifier.create<bool, bool>(
     "block-ads",
-    false,
+    true,
   );
   static final logLevel = PreferencesNotifier.create<LogLevel, String>(
     "log-level",
@@ -155,7 +155,7 @@ abstract class ConfigOptions {
 
   static final urlTestInterval = PreferencesNotifier.create<Duration, int>(
     "url-test-interval",
-    const Duration(minutes: 10),
+    const Duration(seconds: 30),
     mapFrom: const IntervalInSecondsConverter().fromJson,
     mapTo: const IntervalInSecondsConverter().toJson,
   );

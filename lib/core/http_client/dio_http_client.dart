@@ -88,6 +88,18 @@ class DioHttpClient with InfraLogger {
     loggy.debug("setting proxy port: [$port]");
   }
 
+  Future<void> waitForProxyPort({
+    Duration timeout = const Duration(seconds: 8),
+    Duration pollInterval = const Duration(milliseconds: 200),
+  }) async {
+    if (port <= 0) return;
+    final deadline = DateTime.now().add(timeout);
+    while (DateTime.now().isBefore(deadline)) {
+      if (await isPortOpen("127.0.0.1", port, timeout: const Duration(milliseconds: 500))) return;
+      await Future.delayed(pollInterval);
+    }
+  }
+
   Future<Response<T>> get<T>(
     String url, {
     CancelToken? cancelToken,
@@ -114,6 +126,7 @@ class DioHttpClient with InfraLogger {
     String path, {
     CancelToken? cancelToken,
     String? userAgent,
+    Map<String, String>? headers,
     ({String username, String password})? credentials,
     bool proxyOnly = false,
   }) async {
@@ -130,6 +143,7 @@ class DioHttpClient with InfraLogger {
       options: _options(
         url,
         userAgent: userAgent,
+        headers: headers,
         credentials: credentials,
       ),
     );
@@ -138,6 +152,7 @@ class DioHttpClient with InfraLogger {
   Options _options(
     String url, {
     String? userAgent,
+    Map<String, String>? headers,
     ({String username, String password})? credentials,
   }) {
     final uri = Uri.parse(url);
@@ -158,8 +173,7 @@ class DioHttpClient with InfraLogger {
       headers: {
         if (userAgent != null) "User-Agent": userAgent,
         if (basicAuth != null) "authorization": basicAuth,
-        // "Accept": "application/json",
-        // "Content-Type": "application/json",
+        ...?headers,
       },
     );
   }
