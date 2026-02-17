@@ -18,23 +18,12 @@ class ShortcutWrapper extends HookConsumerWidget {
         // Android TV D-pad select support
         LogicalKeySet(LogicalKeyboardKey.select): const ActivateIntent(),
 
-        if (Platform.isLinux) ...{
-          // quit app using Control+Q on Linux
+        if (Platform.isLinux || Platform.isWindows) ...{
           const SingleActivator(LogicalKeyboardKey.keyQ, control: true):
               QuitAppIntent(),
-        },
-
-        if (Platform.isMacOS) ...{
-          // close window using Command+W on macOS
-          const SingleActivator(LogicalKeyboardKey.keyW, meta: true):
+          const SingleActivator(LogicalKeyboardKey.keyW, control: true):
               CloseWindowIntent(),
-
-          // open settings using Command+, on macOS
-          const SingleActivator(LogicalKeyboardKey.comma, meta: true):
-              OpenSettingsIntent(),
         },
-
-        // try adding profile using Command+V and Control+V
         const SingleActivator(LogicalKeyboardKey.keyV, meta: true):
             PasteIntent(),
         const SingleActivator(LogicalKeyboardKey.keyV, control: true):

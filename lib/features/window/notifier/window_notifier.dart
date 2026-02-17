@@ -34,16 +34,10 @@ class WindowNotifier extends _$WindowNotifier with AppLogger {
   Future<void> open({bool focus = true}) async {
     await windowManager.show();
     if (focus) await windowManager.focus();
-    if (Platform.isMacOS) {
-      await windowManager.setSkipTaskbar(false);
-    }
   }
 
   Future<void> close() async {
     await windowManager.hide();
-    if (Platform.isMacOS) {
-      await windowManager.setSkipTaskbar(true);
-    }
     final connected = await ref.read(connectionNotifierProvider.selectAsync((data) => data.isConnected)).catchError((_) => false);
     if (!connected) {
       await ref.read(connectionPlatformSourceProvider).clearSystemProxy();

@@ -415,7 +415,7 @@ class ProfileRepositoryImpl with ExceptionHandler, InfraLogger implements Profil
           final content = safeDecodeBase64(rawBody);
           final fromLinks = proxyLinksToSingboxJson(content);
           final contentToWrite = normalizeSingboxConfig(fromLinks ?? content);
-          loggy.debug('[fetch] url=$url fromLinks=${fromLinks != null} contentLength=${content.length} writeLength=${contentToWrite.length}');
+          loggy.debug('[fetch] profileId=$fileName fromLinks=${fromLinks != null} contentLength=${content.length} writeLength=${contentToWrite.length}');
           await file.writeAsString(contentToWrite);
           final headers = await _populateHeaders(response.headers.map, file.path);
           return await validateConfig(file.path, tempFile.path, false)

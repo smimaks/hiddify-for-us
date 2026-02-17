@@ -10,6 +10,7 @@ import 'package:hiddify/core/notification/in_app_notification_controller.dart';
 import 'package:hiddify/core/preferences/general_preferences.dart';
 import 'package:hiddify/core/preferences/preferences_provider.dart';
 import 'package:hiddify/features/common/adaptive_root_scaffold.dart';
+import 'package:hiddify/features/config_option/data/config_option_repository.dart';
 import 'package:hiddify/features/config_option/notifier/warp_option_notifier.dart';
 import 'package:hiddify/features/config_option/overview/warp_options_widgets.dart';
 import 'package:hiddify/features/connection/notifier/connection_notifier.dart';
@@ -136,9 +137,9 @@ class AddProfile extends _$AddProfile with AppLogger {
           }
         }
 
-        final accountId = _prefs.getString("warp2-account-id");
-        final accessToken = _prefs.getString("warp2-access-token");
-        final hasWarp2Config = accountId != null && accessToken != null;
+        final accountId = ref.watch(ConfigOptions.warp2AccountId);
+        final accessToken = ref.watch(ConfigOptions.warp2AccessToken);
+        final hasWarp2Config = accountId.isNotEmpty && accessToken.isNotEmpty;
 
         if (!hasWarp2Config || true) {
           final toast = notification.showInfoToast(t.profile.add.addingWarpMsg, duration: const Duration(milliseconds: 100));

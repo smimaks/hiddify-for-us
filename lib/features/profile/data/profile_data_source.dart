@@ -38,10 +38,16 @@ class ProfileDao extends DatabaseAccessor<AppDatabase>
         .getSingleOrNull();
   }
 
+  /// Escapes [%] and [_] for safe use in SQL LIKE patterns (avoids wildcard injection).
+  static String _escapeLike(String s) {
+    return s.replaceAll(r'\', r'\\').replaceAll('%', r'\%').replaceAll('_', r'\_');
+  }
+
   @override
   Future<ProfileEntry?> getByUrl(String url) async {
+    final pattern = '%${_escapeLike(url)}%';
     return (select(profileEntries)
-          ..where((tbl) => tbl.url.like('%$url%'))
+          ..where((tbl) => tbl.url.like(pattern))
           ..limit(1))
         .getSingleOrNull();
   }

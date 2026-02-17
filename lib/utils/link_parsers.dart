@@ -78,23 +78,35 @@ abstract class LinkParser {
     final uri = Uri.tryParse(link.trim());
     if (uri == null || !uri.hasScheme || !uri.hasAuthority) return null;
     final queryParams = uri.queryParameters;
+    final String? rawUrl;
+    final String name;
     switch (uri.scheme) {
       case 'clash' || 'clashmeta' when uri.authority == 'install-config':
         if (uri.authority != 'install-config' || !queryParams.containsKey('url')) return null;
-        return (url: queryParams['url']!, name: queryParams['name'] ?? '');
+        rawUrl = queryParams['url'];
+        name = queryParams['name'] ?? '';
+        break;
       case 'sing-box':
         if (uri.authority != 'import-remote-profile' || !queryParams.containsKey('url')) return null;
-        return (url: queryParams['url']!, name: queryParams['name'] ?? '');
+        rawUrl = queryParams['url'];
+        name = queryParams['name'] ?? '';
+        break;
       case 'hiddify':
         if (uri.authority == "import") {
-          return (url: uri.path.substring(1) + (uri.hasQuery ? "?${uri.query}" : ""), name: uri.fragment);
+          rawUrl = uri.path.substring(1) + (uri.hasQuery ? "?${uri.query}" : "");
+          name = uri.fragment;
+        } else if ((uri.authority == 'install-config' || uri.authority == 'install-sub') && queryParams.containsKey('url')) {
+          rawUrl = queryParams['url'];
+          name = queryParams['name'] ?? '';
+        } else {
+          return null;
         }
-        //for backward compatibility
-        if ((uri.authority != 'install-config' && uri.authority != 'install-sub') || !queryParams.containsKey('url')) return null;
-        return (url: queryParams['url']!, name: queryParams['name'] ?? '');
+        break;
       default:
         return null;
     }
+    if (rawUrl == null || rawUrl.isEmpty || !isUrl(rawUrl)) return null;
+    return (url: rawUrl, name: name);
   }
 }
 

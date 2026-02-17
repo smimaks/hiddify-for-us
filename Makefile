@@ -34,8 +34,8 @@ else
 	TARGET=lib/main.dart
 endif
 
-BUILD_ARGS=--dart-define sentry_dsn=$(SENTRY_DSN)
-DISTRIBUTOR_ARGS=--skip-clean --build-target $(TARGET) --build-dart-define sentry_dsn=$(SENTRY_DSN)
+BUILD_ARGS=
+DISTRIBUTOR_ARGS=--skip-clean --build-target $(TARGET)
 
 
 

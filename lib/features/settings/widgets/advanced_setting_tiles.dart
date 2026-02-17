@@ -64,14 +64,6 @@ class AdvancedSettingTiles extends HookConsumerWidget {
             await ref.read(Preferences.disableMemoryLimit.notifier).update(!value);
           },
         ),
-        if (Platform.isIOS)
-          ListTile(
-            title: Text(t.settings.advanced.resetTunnel),
-            leading: const Icon(FluentIcons.arrow_reset_24_regular),
-            onTap: () async {
-              await ref.read(resetTunnelProvider.notifier).run();
-            },
-          ),
         SwitchListTile(
           title: Text(t.settings.advanced.debugMode),
           value: debug,

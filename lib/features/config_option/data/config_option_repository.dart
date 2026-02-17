@@ -2,7 +2,7 @@ import 'package:dartx/dartx.dart';
 import 'package:fpdart/fpdart.dart';
 import 'package:hiddify/core/model/optional_range.dart';
 import 'package:hiddify/core/model/region.dart';
-import 'package:hiddify/core/preferences/general_preferences.dart';
+import 'package:hiddify/core/preferences/secure_preferences.dart';
 
 import 'package:hiddify/core/utils/exception_handler.dart';
 import 'package:hiddify/core/utils/json_converters.dart';
@@ -273,23 +273,11 @@ abstract class ConfigOptions {
     "",
   );
 
-  static final warpAccountId = PreferencesNotifier.create<String, String>(
-    "warp-account-id",
-    "",
-  );
-  static final warp2AccountId = PreferencesNotifier.create<String, String>(
-    "warp2-account-id",
-    "",
-  );
+  static final warpAccountId = secureStringProvider("warp-account-id", "");
+  static final warp2AccountId = secureStringProvider("warp2-account-id", "");
 
-  static final warpAccessToken = PreferencesNotifier.create<String, String>(
-    "warp-access-token",
-    "",
-  );
-  static final warp2AccessToken = PreferencesNotifier.create<String, String>(
-    "warp2-access-token",
-    "",
-  );
+  static final warpAccessToken = secureStringProvider("warp-access-token", "");
+  static final warp2AccessToken = secureStringProvider("warp2-access-token", "");
 
   static final warpCleanIp = PreferencesNotifier.create<String, String>(
     "warp-clean-ip",
@@ -361,7 +349,7 @@ abstract class ConfigOptions {
     "warp2.wireguard-config",
   };
 
-  static final Map<String, StateNotifierProvider<PreferencesNotifier, dynamic>> preferences = {
+  static final Map<String, StateNotifierProvider<PreferencesNotifier<dynamic, dynamic>, dynamic>> preferences = {
     "region": region,
     "block-ads": blockAds,
     "use-xray-core-when-possible": useXrayCoreWhenPossible,
@@ -404,8 +392,8 @@ abstract class ConfigOptions {
     "warp.enable": enableWarp,
     "warp.mode": warpDetourMode,
     "warp.license-key": warpLicenseKey,
-    "warp.account-id": warpAccountId,
-    "warp.access-token": warpAccessToken,
+    "warp.account-id": warpAccountId as StateNotifierProvider<PreferencesNotifier<dynamic, dynamic>, dynamic>,
+    "warp.access-token": warpAccessToken as StateNotifierProvider<PreferencesNotifier<dynamic, dynamic>, dynamic>,
     "warp.clean-ip": warpCleanIp,
     "warp.clean-port": warpPort,
     "warp.noise": warpNoise,
@@ -414,8 +402,8 @@ abstract class ConfigOptions {
     "warp.noise-delay": warpNoiseDelay,
     "warp.wireguard-config": warpWireguardConfig,
     "warp2.license-key": warp2LicenseKey,
-    "warp2.account-id": warp2AccountId,
-    "warp2.access-token": warp2AccessToken,
+    "warp2.account-id": warp2AccountId as StateNotifierProvider<PreferencesNotifier<dynamic, dynamic>, dynamic>,
+    "warp2.access-token": warp2AccessToken as StateNotifierProvider<PreferencesNotifier<dynamic, dynamic>, dynamic>,
     "warp2.wireguard-config": warp2WireguardConfig,
   };
 

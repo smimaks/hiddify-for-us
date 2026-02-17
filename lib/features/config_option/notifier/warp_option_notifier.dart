@@ -15,14 +15,9 @@ class WarpOptionNotifier extends _$WarpOptionNotifier with AppLogger {
   @override
   WarpOptions build() {
     final consent = _prefs.getBool(warpConsentGiven) ?? false;
-    bool hasWarpConfig = false;
-    try {
-      final accountId = _prefs.getString("warp-account-id");
-      final accessToken = _prefs.getString("warp-access-token");
-      hasWarpConfig = accountId != null && accessToken != null;
-    } catch (e) {
-      loggy.warning(e);
-    }
+    final accountId = ref.watch(ConfigOptions.warpAccountId);
+    final accessToken = ref.watch(ConfigOptions.warpAccessToken);
+    final hasWarpConfig = accountId.isNotEmpty && accessToken.isNotEmpty;
 
     return WarpOptions(
       consentGiven: consent,

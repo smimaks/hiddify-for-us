@@ -38,16 +38,7 @@ class PlatformSingboxService with InfraLogger implements SingboxService {
 
   @override
   TaskEither<String, Unit> setup(Directories directories, bool debug) {
-    return TaskEither(
-      () async {
-        if (!Platform.isIOS) {
-          return right(unit);
-        }
-
-        await methodChannel.invokeMethod("setup");
-        return right(unit);
-      },
-    );
+    return TaskEither(() async => right(unit));
   }
 
   @override
@@ -149,18 +140,9 @@ class PlatformSingboxService with InfraLogger implements SingboxService {
   @override
   TaskEither<String, Unit> resetTunnel() {
     return TaskEither(
-      () async {
-        // only available on iOS (and macOS later)
-        if (!Platform.isIOS) {
-          throw UnimplementedError(
-            "reset tunnel function unavailable on platform",
-          );
-        }
-
-        loggy.debug("resetting tunnel");
-        await methodChannel.invokeMethod("reset");
-        return right(unit);
-      },
+      () async => throw UnimplementedError(
+        "reset tunnel function unavailable on platform",
+      ),
     );
   }
 

@@ -37,8 +37,6 @@ class FFISingboxService with InfraLogger implements SingboxService {
     }
     if (Platform.isWindows) {
       fullPath = p.join(fullPath, "libcore.dll");
-    } else if (Platform.isMacOS) {
-      fullPath = p.join(fullPath, "libcore.dylib");
     } else {
       fullPath = p.join(fullPath, "libcore.so");
     }

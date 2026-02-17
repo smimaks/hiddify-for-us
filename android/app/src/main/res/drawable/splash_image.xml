@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<scale
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:scaleWidth="0.5"
+    android:scaleHeight="0.5"
+    android:scaleGravity="center"
+    android:level="10000">
+    <bitmap
+        android:gravity="center"
+        android:src="@drawable/ussr" />
+</scale>

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:hiddify/core/haptic/haptic_service.dart';
 import 'package:hiddify/core/localization/translations.dart';
 import 'package:hiddify/core/notification/in_app_notification_controller.dart';
@@ -17,7 +18,6 @@ import 'package:in_app_review/in_app_review.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:fpdart/src/unit.dart';
 import 'package:rxdart/rxdart.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
 
 part 'connection_notifier.g.dart';
 
@@ -25,12 +25,6 @@ part 'connection_notifier.g.dart';
 class ConnectionNotifier extends _$ConnectionNotifier with AppLogger {
   @override
   Stream<ConnectionStatus> build() async* {
-    if (Platform.isIOS) {
-      await _connectionRepo.setup().mapLeft((l) {
-        loggy.error("error setting up connection repository", l);
-      }).run();
-    }
-
     ref.listenSelf(
       (previous, next) async {
         if (previous == next) return;
@@ -69,6 +63,8 @@ class ConnectionNotifier extends _$ConnectionNotifier with AppLogger {
         if (PlatformUtils.isDesktop) {
           final hadSystemProxy = ref.read(connectionRepositoryProvider).configOptionsSnapshot?.setSystemProxy ?? false;
           if (hadSystemProxy) {
+            const unsetCmd = 'unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY all_proxy';
+            Clipboard.setData(const ClipboardData(text: unsetCmd));
             ref.read(inAppNotificationControllerProvider).showInfoToast(
               ref.read(translationsProvider).connection.proxyClearedTerminalHint,
               duration: const Duration(seconds: 6),
@@ -159,9 +155,6 @@ class ConnectionNotifier extends _$ConnectionNotifier with AppLogger {
       loggy.warning("error connecting", err);
       //Go err is not normal object to see the go errors are string and need to be dumped
       loggy.warning(err);
-      if (err.toString().contains("panic")) {
-        await Sentry.captureException(Exception(err.toString()));
-      }
       await ref.read(Preferences.startedByUser.notifier).update(false);
       state = AsyncError(err, StackTrace.current);
     }).run();

@@ -22,10 +22,7 @@ enum ServiceMode {
   static List<ServiceMode> get choices {
     if (Platform.isWindows || Platform.isLinux) {
       return values;
-    } else if (Platform.isMacOS) {
-      return [proxy, systemProxy, tun];
     }
-    // mobile
     return [proxy, tun];
   }
 

@@ -39,11 +39,7 @@ class _TrayWrapperState extends ConsumerState<TrayWrapper>
 
   @override
   Future<void> onTrayIconMouseDown() async {
-    if (Platform.isMacOS) {
-      await trayManager.popUpContextMenu();
-    } else {
-      await ref.read(windowNotifierProvider.notifier).open();
-    }
+    await ref.read(windowNotifierProvider.notifier).open();
   }
 
   @override

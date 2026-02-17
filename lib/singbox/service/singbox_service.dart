@@ -12,9 +12,10 @@ import 'package:hiddify/singbox/service/platform_singbox_service.dart';
 
 abstract interface class SingboxService {
   factory SingboxService() {
-    if (Platform.isAndroid || Platform.isIOS) {
+    if (Platform.isAndroid) {
       return PlatformSingboxService();
-    } else if (Platform.isLinux || Platform.isWindows || Platform.isMacOS) {
+    }
+    if (Platform.isLinux || Platform.isWindows) {
       return FFISingboxService();
     }
     throw Exception("unsupported platform");

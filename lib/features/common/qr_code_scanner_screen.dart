@@ -259,11 +259,9 @@ class _QRCodeScannerScreenState extends ConsumerState<QRCodeScannerScreen> with 
             controller: controller,
             onDetect: (capture) {
               final rawData = capture.barcodes.first.rawValue;
-              loggy.debug('captured raw: [$rawData]');
               if (rawData != null) {
                 final uri = Uri.tryParse(rawData);
                 if (context.mounted && uri != null) {
-                  loggy.debug('captured url: [$uri]');
                   Navigator.of(context, rootNavigator: true).pop(uri.toString());
                 }
               } else {

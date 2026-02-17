@@ -5,7 +5,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
-import 'package:hiddify/core/analytics/analytics_controller.dart';
 import 'package:hiddify/core/app_info/app_info_provider.dart';
 import 'package:hiddify/core/directories/directories_provider.dart';
 import 'package:hiddify/core/logger/logger.dart';
@@ -26,7 +25,6 @@ import 'package:hiddify/features/window/notifier/window_notifier.dart';
 import 'package:hiddify/singbox/service/singbox_service_provider.dart';
 import 'package:hiddify/utils/utils.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
 
 Future<void> lazyBootstrap(
   WidgetsBinding widgetsBinding,
@@ -60,14 +58,6 @@ Future<void> lazyBootstrap(
     "preferences",
     () => container.read(sharedPreferencesProvider.future),
   );
-
-  final enableAnalytics = await container.read(analyticsControllerProvider.future);
-  if (enableAnalytics) {
-    await _init(
-      "analytics",
-      () => container.read(analyticsControllerProvider.notifier).enableAnalytics(),
-    );
-  }
 
   await _init(
     "preferences migration",
@@ -155,9 +145,7 @@ Future<void> lazyBootstrap(
   runApp(
     ProviderScope(
       parent: container,
-      child: SentryUserInteractionWidget(
-        child: const App(),
-      ),
+      child: const App(),
     ),
   );
 

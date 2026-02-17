@@ -143,8 +143,6 @@ jobs:
           make ${{ matrix.platform }}-prepare
           tree
       - name: Build ${{ matrix.platform }}
-        env:
-          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
         run: |
           make ${{ matrix.platform }}-release
 
@@ -167,20 +165,6 @@ jobs:
           .\scripts\package_windows.ps1
           
           
-      - name: Upload Debug Symbols
-        if: ${{ inputs.upload-artifact && inputs.tag-name != 'draft' }}
-        env:
-          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
-          SENTRY_DIST: ${{ matrix.platform == 'android-aab' && 'google-play' || 'general' }}
-        run: |
-          dart pub global activate sentry_dart_plugin
-          dart run sentry_dart_plugin 
-      
-      
-
-              
       - name: Copy to out Android APK
         if: matrix.platform == 'android-apk'
         run: |
@@ -259,11 +243,11 @@ jobs:
       - name: prepare_release_message
         run: |
           pip install gitchangelog pystache mustache markdown
-          prelease=$(curl --silent "https://api.github.com/repos/hiddify/hiddify-next/releases/latest" | grep -Po '"tag_name": "\K.*?(?=")')
+          prelease=$(curl --silent "https://api.github.com/repos/${{ github.repository }}/releases/latest" | grep -Po '"tag_name": "\K.*?(?=")' || echo "v0.0.0")
           current="${{ github.ref_name }}"
-          sed 's|RELEASE_TAG|${{ env.TAG_NAME }}|g' ./.github/release_message.md > release.md
-          echo -e "\n\n<details markdown=1><summary>All changes from $current to the latest commit:</summary>\n\n">>release.md
-          gitchangelog "${prelease}.." >> release.md  2>&1 || echo "Error in gitchangelog"
+          sed -e 's|RELEASE_TAG|${{ env.TAG_NAME }}|g' -e 's|GITHUB_REPOSITORY|${{ github.repository }}|g' ./.github/release_message.md > release.md
+          echo -e "\n\n<details markdown=1><summary>Changes from $prelease to $current:</summary>\n\n">>release.md
+          gitchangelog "${prelease}..${current}" >> release.md  2>&1 || echo "Changelog not available"
           echo -e "\n\n</details>">>release.md
       - name: Create or Update Draft Release
         uses: softprops/action-gh-release@v1
@@ -300,7 +284,7 @@ jobs:
 
       - name: prepare_release_message
         run: |
-          sed 's|RELEASE_TAG|${{ env.TAG_NAME }}|g' ./.github/release_message.md >> release.md
+          sed -e 's|RELEASE_TAG|${{ env.TAG_NAME }}|g' -e 's|GITHUB_REPOSITORY|${{ github.repository }}|g' ./.github/release_message.md > release.md
 
       - name: Upload Release
         uses: softprops/action-gh-release@v1
@@ -315,9 +299,11 @@ jobs:
           files: ./out/*
 
       - name: Create service_account.json
+        if: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON != '' }}
         run: echo '${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}' > service_account.json
 
       - name: Deploy to Google Play Internal Testers
+        if: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON != '' }}
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJson: service_account.json
