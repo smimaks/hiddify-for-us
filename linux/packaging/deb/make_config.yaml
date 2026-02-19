@@ -1,5 +1,5 @@
-display_name: Hiddify
-package_name: hiddify
+display_name: Для своих
+package_name: for-our-own
 maintainer:
   name: hiddify
   email: linux@hiddify.com
@@ -11,12 +11,12 @@ essential: false
 icon: ./assets/images/USSR.png
 
 postinstall_scripts:
-  - echo "Installed Hiddify"
+  - echo "Installed Для своих"
 postuninstall_scripts:
   - echo "Surprised Why?"
 
 keywords:
-  - Hiddify
+  - Для своих
   - Proxy
   - VPN
   - V2ray
@@ -25,7 +25,7 @@ keywords:
   - Psiphon
   - OpenVPN
 
-generic_name: Hiddify
+generic_name: Для своих
 
 categories:
   - Network

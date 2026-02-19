@@ -53,31 +53,6 @@
 
 ---
 
-## Как выложить релиз в этот GitHub
-
-**Вариант 1: через тег (GitHub Actions)**
-
-1. В `pubspec.yaml` выставь нужную версию (например `version: 2.5.8+20508`).
-2. Закоммить изменения и запушь в репозиторий.
-3. Создай и запушь тег версии:
-   ```bash
-   git tag v2.5.8
-   git push origin v2.5.8
-   ```
-4. В репозитории включи **Actions** (Settings → Actions → General → Allow).
-5. Workflow **Release** запустится по тегу `v*.*.*`, соберёт Android APK, Windows (exe/msix) и Linux (AppImage, deb, rpm) и создаст релиз с артефактами в разделе [Releases](https://github.com/smimaks/hiddify-or-us/releases).
-
-Если репозиторий у тебя другой — замени `smimaks/hiddify-or-us` на `ВЛАДЕЛЕЦ/РЕПО` в настройках и в ссылках.
-
-**Вариант 2: вручную**
-
-1. Собери локально: APK (`flutter build apk --release`), при необходимости Windows/Linux (`make windows-release`, `make linux-release`).
-2. На GitHub: **Releases** → **Create a new release**.
-3. Укажи тег (например `v2.5.7`), описание, прикрепи файлы из `build/app/outputs/flutter-apk/` и из `dist/`.
-4. Опубликуй релиз.
-
----
-
 ## О форке и безопасности
 
 Этот форк сделан так, чтобы приложение можно было **безопасно использовать всем русскоязычным пользователям**:

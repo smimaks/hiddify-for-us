@@ -117,10 +117,13 @@ android-aab-release:
 	ls -R build/app/outputs
 
 windows-release:
-	flutter_distributor package --flutter-build-args=verbose --platform windows --targets exe,msix $(DISTRIBUTOR_ARGS)
+	dart pub global run flutter_distributor:main package --flutter-build-args=verbose --platform windows --targets exe,msix $(DISTRIBUTOR_ARGS)
 
-linux-release: 
-	flutter_distributor package --flutter-build-args=verbose --platform linux --targets deb,rpm,appimage $(DISTRIBUTOR_ARGS)
+linux-activate-distributor:
+	dart pub global activate --source git https://github.com/hiddify/flutter_distributor --git-path packages/flutter_distributor
+
+linux-release: linux-activate-distributor
+	dart pub global run flutter_distributor:main package --flutter-build-args=verbose --platform linux --targets deb,rpm,appimage $(DISTRIBUTOR_ARGS)
 
 android-libs:
 	@$(MKDIR) $(ANDROID_OUT) || echo Folder already exists. Skipping...

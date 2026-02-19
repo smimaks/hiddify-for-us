@@ -1,9 +1,9 @@
-display_name: Hiddify
+display_name: Для своих
 
 icon: ./assets/images/USSR.png
 
 keywords:
-  - Hiddify
+  - Для своих
   - Proxy
   - VPN
   - V2ray
@@ -12,7 +12,7 @@ keywords:
   - Psiphon
   - OpenVPN
 
-generic_name: Hiddify
+generic_name: Для своих
 
 actions:
   - name: Start

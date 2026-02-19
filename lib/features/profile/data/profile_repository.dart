@@ -409,7 +409,6 @@ class ProfileRepositoryImpl with ExceptionHandler, InfraLogger implements Profil
             tempFile.path,
             cancelToken: cancelToken,
             userAgent: configs.useXrayCoreWhenPossible ? "v2rayNG/1.8.23" : null,
-            headers: {"X-Sub-id": fileName},
           );
           final rawBody = await tempFile.readAsString();
           final content = safeDecodeBase64(rawBody);
